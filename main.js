@@ -1,11 +1,14 @@
 const { Plugin, Notice, PluginSettingTab, Setting } = require('obsidian');
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
+const path = require('path');
 
 const DEFAULT_SETTINGS = {
     repoUrl: ''
 };
 
 class GitHubVaultSyncPlugin extends Plugin {
+    syncing = false;
+
     async onload() {
         await this.loadSettings();
 
@@ -36,9 +39,9 @@ class GitHubVaultSyncPlugin extends Plugin {
         this.app.saveLocalStorage('github-vault-sync:token', value);
     }
 
-    run(cmd) {
+    run(args) {
         return new Promise((resolve, reject) => {
-            exec(cmd, (err, stdout, stderr) => {
+            execFile('git', args, (err, stdout, stderr) => {
                 if (err) reject(stderr || err.message);
                 else resolve(stdout.trim());
             });
@@ -46,16 +49,25 @@ class GitHubVaultSyncPlugin extends Plugin {
     }
 
     buildRemoteUrl(repoUrl, token) {
-        try {
-            const url = new URL(repoUrl);
-            url.username = token;
-            return url.toString();
-        } catch {
-            return repoUrl;
+        const url = new URL(repoUrl);
+        if (url.protocol !== 'https:') {
+            throw new Error('only HTTPS URLs are supported');
         }
+        url.username = token;
+        url.password = '';
+        return url.toString();
+    }
+
+    redact(str, token) {
+        return token ? str.split(token).join('***') : str;
     }
 
     async sync() {
+        if (this.syncing) {
+            new Notice('GitHub Vault Sync: sync already in progress');
+            return;
+        }
+
         const { repoUrl } = this.settings;
         const token = this.getToken();
 
@@ -64,44 +76,75 @@ class GitHubVaultSyncPlugin extends Plugin {
             return;
         }
 
+        let remote;
+        try {
+            remote = this.buildRemoteUrl(repoUrl, token);
+        } catch (e) {
+            new Notice(`GitHub Vault Sync: invalid repository URL — ${e.message}`);
+            return;
+        }
+
         const vault = this.app.vault.adapter.basePath;
-        const remote = this.buildRemoteUrl(repoUrl, token);
-        const git = (args) => this.run(`git -C "${vault}" ${args}`);
+
+        let gitRoot;
+        try {
+            gitRoot = await this.run(['-C', vault, 'rev-parse', '--show-toplevel']);
+        } catch {
+            new Notice('GitHub Vault Sync: vault is not a git repository');
+            return;
+        }
+
+        if (path.resolve(gitRoot) !== path.resolve(vault)) {
+            new Notice('GitHub Vault Sync: vault is inside another git repository — aborting to prevent unintended staging');
+            return;
+        }
+
+        const git = (...args) => this.run(['-C', vault, ...args]);
         const now = new Date().toLocaleString('en-GB');
 
+        this.syncing = true;
         new Notice('GitHub Vault Sync: syncing...');
 
-        let branch;
         try {
-            branch = await git('rev-parse --abbrev-ref HEAD');
-        } catch (e) {
-            new Notice(`GitHub Vault Sync: failed to detect branch\n${e}`);
-            return;
+            let branch;
+            try {
+                branch = await git('rev-parse', '--abbrev-ref', 'HEAD');
+            } catch (e) {
+                new Notice(`GitHub Vault Sync: failed to detect branch\n${e}`);
+                return;
+            }
+
+            try {
+                await git('pull', remote, branch);
+            } catch (e) {
+                new Notice(`GitHub Vault Sync: pull failed\n${this.redact(e, token)}`);
+                return;
+            }
+
+            try {
+                await git('add', '.');
+            } catch (e) {
+                new Notice(`GitHub Vault Sync: staging failed\n${e}`);
+                return;
+            }
+
+            try {
+                await git('commit', '-m', `Obsidian Auto Sync ${now}`);
+            } catch (_) {
+                // nothing to commit — continue
+            }
+
+            try {
+                await git('push', remote, branch);
+            } catch (e) {
+                new Notice(`GitHub Vault Sync: push failed\n${this.redact(e, token)}`);
+                return;
+            }
+
+            new Notice('GitHub Vault Sync: sync complete');
+        } finally {
+            this.syncing = false;
         }
-
-        try {
-            await git(`pull ${remote} ${branch}`);
-        } catch (e) {
-            new Notice(`GitHub Vault Sync: pull failed\n${e}`);
-            return;
-        }
-
-        await git('add .');
-
-        try {
-            await git(`commit -m "Obsidian Auto Sync ${now}"`);
-        } catch (_) {
-            // nothing to commit — continue
-        }
-
-        try {
-            await git(`push ${remote} ${branch}`);
-        } catch (e) {
-            new Notice(`GitHub Vault Sync: push failed\n${e}`);
-            return;
-        }
-
-        new Notice('GitHub Vault Sync: sync complete');
     }
 }
 
@@ -131,12 +174,12 @@ class GitHubVaultSyncSettingTab extends PluginSettingTab {
             .setName('Personal Access Token')
             .setDesc('GitHub PAT with repo scope. Create one at: GitHub → Settings → Developer settings → Personal access tokens')
             .addText(text => {
+                text.inputEl.type = 'password';
                 text.setPlaceholder('ghp_...')
                     .setValue(this.plugin.getToken())
                     .onChange((value) => {
                         this.plugin.setToken(value.trim());
                     });
-                text.inputEl.type = 'password';
             });
     }
 }
