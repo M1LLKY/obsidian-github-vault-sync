@@ -1,4 +1,4 @@
-# GitHub Vault Sync
+# Quick GitHub Sync
 
 An [Obsidian](https://obsidian.md) plugin that syncs your vault with a GitHub repository in one click.
 
@@ -21,13 +21,13 @@ An [Obsidian](https://obsidian.md) plugin that syncs your vault with a GitHub re
 ### Manual
 
 1. Download `main.js` and `manifest.json` from the [latest release](../../releases/latest)
-2. Create a folder `github-vault-sync` inside your vault's `.obsidian/plugins/` directory
+2. Create a folder `quick-github-sync` inside your vault's `.obsidian/plugins/` directory
 3. Place the downloaded files inside that folder
-4. Enable the plugin in Obsidian: **Settings → Community plugins → GitHub Vault Sync**
+4. Enable the plugin in Obsidian: **Settings → Community plugins → Quick GitHub Sync**
 
 ## Configuration
 
-Go to **Settings → GitHub Vault Sync** and fill in:
+Go to **Settings → Quick GitHub Sync** and fill in:
 
 | Field | Description |
 |-------|-------------|
