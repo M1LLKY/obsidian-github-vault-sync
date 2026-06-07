@@ -1,7 +1,7 @@
 {
   "id": "quick-github-sync",
   "name": "Quick GitHub Sync",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "minAppVersion": "0.15.0",
   "description": "Sync your vault with a GitHub repository in one click.",
   "author": "M1LLKY",
