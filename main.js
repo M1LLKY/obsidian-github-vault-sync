@@ -32,11 +32,11 @@ class GitHubVaultSyncPlugin extends Plugin {
     }
 
     getToken() {
-        return this.app.loadLocalStorage('github-vault-sync:token') ?? '';
+        return this.app.loadLocalStorage('quick-github-sync:token') ?? '';
     }
 
     setToken(value) {
-        this.app.saveLocalStorage('github-vault-sync:token', value);
+        this.app.saveLocalStorage('quick-github-sync:token', value);
     }
 
     run(args) {
@@ -64,7 +64,7 @@ class GitHubVaultSyncPlugin extends Plugin {
 
     async sync() {
         if (this.syncing) {
-            new Notice('GitHub Vault Sync: sync already in progress');
+            new Notice('Quick GitHub Sync: sync already in progress');
             return;
         }
 
@@ -72,7 +72,7 @@ class GitHubVaultSyncPlugin extends Plugin {
         const token = this.getToken();
 
         if (!repoUrl || !token) {
-            new Notice('GitHub Vault Sync: please fill in the plugin settings');
+            new Notice('Quick GitHub Sync: please fill in the plugin settings');
             return;
         }
 
@@ -80,7 +80,7 @@ class GitHubVaultSyncPlugin extends Plugin {
         try {
             remote = this.buildRemoteUrl(repoUrl, token);
         } catch (e) {
-            new Notice(`GitHub Vault Sync: invalid repository URL — ${e.message}`);
+            new Notice(`Quick GitHub Sync: invalid repository URL — ${e.message}`);
             return;
         }
 
@@ -90,12 +90,12 @@ class GitHubVaultSyncPlugin extends Plugin {
         try {
             gitRoot = await this.run(['-C', vault, 'rev-parse', '--show-toplevel']);
         } catch {
-            new Notice('GitHub Vault Sync: vault is not a git repository');
+            new Notice('Quick GitHub Sync: vault is not a git repository');
             return;
         }
 
         if (path.resolve(gitRoot) !== path.resolve(vault)) {
-            new Notice('GitHub Vault Sync: vault is inside another git repository — aborting to prevent unintended staging');
+            new Notice('Quick GitHub Sync: vault is inside another git repository — aborting to prevent unintended staging');
             return;
         }
 
@@ -103,28 +103,28 @@ class GitHubVaultSyncPlugin extends Plugin {
         const now = new Date().toLocaleString('en-GB');
 
         this.syncing = true;
-        new Notice('GitHub Vault Sync: syncing...');
+        new Notice('Quick GitHub Sync: syncing...');
 
         try {
             let branch;
             try {
                 branch = await git('rev-parse', '--abbrev-ref', 'HEAD');
             } catch (e) {
-                new Notice(`GitHub Vault Sync: failed to detect branch\n${e}`);
+                new Notice(`Quick GitHub Sync: failed to detect branch\n${e}`);
                 return;
             }
 
             try {
                 await git('pull', remote, branch);
             } catch (e) {
-                new Notice(`GitHub Vault Sync: pull failed\n${this.redact(e, token)}`);
+                new Notice(`Quick GitHub Sync: pull failed\n${this.redact(e, token)}`);
                 return;
             }
 
             try {
                 await git('add', '.');
             } catch (e) {
-                new Notice(`GitHub Vault Sync: staging failed\n${e}`);
+                new Notice(`Quick GitHub Sync: staging failed\n${e}`);
                 return;
             }
 
@@ -137,11 +137,11 @@ class GitHubVaultSyncPlugin extends Plugin {
             try {
                 await git('push', remote, branch);
             } catch (e) {
-                new Notice(`GitHub Vault Sync: push failed\n${this.redact(e, token)}`);
+                new Notice(`Quick GitHub Sync: push failed\n${this.redact(e, token)}`);
                 return;
             }
 
-            new Notice('GitHub Vault Sync: sync complete');
+            new Notice('Quick GitHub Sync: sync complete');
         } finally {
             this.syncing = false;
         }
@@ -157,7 +157,7 @@ class GitHubVaultSyncSettingTab extends PluginSettingTab {
     display() {
         const { containerEl } = this;
         containerEl.empty();
-        containerEl.createEl('h2', { text: 'GitHub Vault Sync' });
+        containerEl.createEl('h2', { text: 'Quick GitHub Sync' });
 
         new Setting(containerEl)
             .setName('Repository URL')
