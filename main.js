@@ -12,7 +12,7 @@ class GitHubVaultSyncPlugin extends Plugin {
         this.addRibbonIcon('cloud-upload', 'Sync vault with GitHub', () => this.sync());
 
         this.addCommand({
-            id: 'github-vault-sync',
+            id: 'sync',
             name: 'Sync vault with GitHub',
             callback: () => this.sync()
         });
