@@ -1,0 +1,9 @@
+{
+  "id": "github-vault-sync",
+  "name": "GitHub Vault Sync",
+  "version": "1.0.0",
+  "minAppVersion": "0.15.0",
+  "description": "Синхронизация хранилища с GitHub в одно нажатие",
+  "author": "M1LLKY",
+  "isDesktopOnly": true
+}
