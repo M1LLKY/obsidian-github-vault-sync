@@ -6,7 +6,7 @@ const DEFAULT_SETTINGS = {
     repoUrl: ''
 };
 
-class GitHubVaultSyncPlugin extends Plugin {
+class QuickGitHubSyncPlugin extends Plugin {
     syncing = false;
 
     async onload() {
@@ -20,7 +20,7 @@ class GitHubVaultSyncPlugin extends Plugin {
             callback: () => this.sync()
         });
 
-        this.addSettingTab(new GitHubVaultSyncSettingTab(this.app, this));
+        this.addSettingTab(new QuickGitHubSyncSettingTab(this.app, this));
     }
 
     async loadSettings() {
@@ -148,7 +148,7 @@ class GitHubVaultSyncPlugin extends Plugin {
     }
 }
 
-class GitHubVaultSyncSettingTab extends PluginSettingTab {
+class QuickGitHubSyncSettingTab extends PluginSettingTab {
     constructor(app, plugin) {
         super(app, plugin);
         this.plugin = plugin;
@@ -184,4 +184,4 @@ class GitHubVaultSyncSettingTab extends PluginSettingTab {
     }
 }
 
-module.exports = GitHubVaultSyncPlugin;
+module.exports = QuickGitHubSyncPlugin;
